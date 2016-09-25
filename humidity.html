@@ -1,0 +1,157 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html>
+<head>
+    <title>Temperatures</title>
+    <!-- Load jQuery -->
+    <script language="javascript" type="text/javascript" 
+        src="http://ajax.googleapis.com/ajax/libs/jquery/1.7.0/jquery.min.js">
+    </script>
+    <!-- Load Google JSAPI -->
+    <script type="text/javascript" src="https://www.google.com/jsapi"></script>
+    <script type="text/javascript">
+        google.load("visualization", "1", { packages: ["corechart"] });
+	google.load("visualization", "1.1", {packages:["table"]});
+	
+	//start with the table when page loads
+	google.setOnLoadCallback(drawTable);
+		
+	var selectedSensor=[0]
+	//update data every 60 seconds
+	var myVarLatest = setInterval(function(){ drawTable() }, 60000);	
+
+	function drawTable() {
+	  var jsonData = $.ajax({
+                url: "php/latest.php",
+		type: "POST",
+                dataType: "json",
+		//data: ({limit: 7,}),
+                async: false
+            }).responseText;
+	   
+	   var obj = jQuery.parseJSON(jsonData);
+	   
+           var data = google.visualization.arrayToDataTable(obj);
+	   //create array of sensors
+   	   selectedSensor=[0]
+    	   for (var i = 0; i < data.getNumberOfRows(); i++) {
+		    selectedSensor[i]=data.getValue(i, 1);  
+	    }
+	
+	   var table = new google.visualization.Table(document.getElementById('table_div'));
+
+	  //create visual objects for the page
+	  table.draw(data, {showRowNumber: false, width: '100%', height: '50%'});
+    	  drawChart();
+	  drawMin();
+	  drawMax();
+
+	  google.visualization.events.addListener(table, 'select', function() {
+
+	    var selection = table.getSelection();
+    	    selectedSensor=[0];
+    	    for (var i = 0; i < selection.length; i++) {
+ 		    //get value from the column 1 on the row
+	    	    var row = selection[i].row;
+		    selectedSensor[i]=data.getValue(row, 1);    
+	    
+	    }
+	    //update graphics based on the new selection
+	    drawChart();
+	    drawMin();
+	    drawMax();
+	    });
+	}        
+
+	function drawChart() {
+	   //if there are more than one sensors (array), convert array to string
+	   if (Array.isArray(selectedSensor)) {		
+		selectedSensor=selectedSensor.join();
+	   } 
+            var jsonData = $.ajax({
+                url: "php/history.php",
+		type: "POST",
+                dataType: "json",
+		data: {sensors:selectedSensor,type:"humidity"},
+                async: false
+            }).responseText;
+	   //alert(selectedSensor);
+
+           // var obj = window.JSON.stringify(jsonData);
+	   var obj = jQuery.parseJSON(jsonData);
+           var data = google.visualization.arrayToDataTable(obj);
+	   //   var data = new google.visualization.DataTable(jsonData);
+
+            var options = {
+                title: 'Humidity'
+            };
+            var chart = new google.visualization.LineChart(
+                        document.getElementById('chart_div'));
+            chart.draw(data, options);
+        }
+
+	function drawMin() {
+	   //if there are more than one sensors (array), convert array to string
+	   if (Array.isArray(selectedSensor)) {		
+		selectedSensor=selectedSensor.join();
+	   } 
+	   var jsonData = $.ajax({
+                url: "php/min_max.php",
+		type: "POST",
+                dataType: "json",
+		data: {sensors:selectedSensor,limit:'min',type:"humidity"},
+                async: false
+            }).responseText;
+	   
+	   var obj = jQuery.parseJSON(jsonData);
+           var data = google.visualization.arrayToDataTable(obj);
+
+            var options = {
+                title: 'Min Humidity'
+            };
+            var chart = new google.visualization.LineChart(
+                        document.getElementById('chartMin_div'));
+            chart.draw(data, options);
+	}
+
+	function drawMax() {
+	   //if there are more than one sensors (array), convert array to string
+	   if (Array.isArray(selectedSensor)) {
+		selectedSensor=selectedSensor.join();
+	   } 
+
+	    var jsonData = $.ajax({
+                url: "php/min_max.php",
+		type: "POST",
+                dataType: "json",
+		data: {sensors:selectedSensor,limit:'max',type:"humidity"},
+                async: false
+            }).responseText;
+	   
+	   var obj = jQuery.parseJSON(jsonData);
+           var data = google.visualization.arrayToDataTable(obj);
+
+            var options = {
+                title: 'Max Humidity'
+            };
+            var chart = new google.visualization.LineChart(
+                        document.getElementById('chartMax_div'));
+            chart.draw(data, options);
+	}
+    </script>
+</head>
+<body>
+    <div id="table_div" style="width: 900px; height: 200px;">
+    </div>
+
+    <div id="chart_div" style="width: 900px; height: 500px;">
+    </div>
+  
+    <div id="chartMin_div" style="width: 900px; height: 500px;">
+    </div>
+    
+    <div id="chartMax_div" style="width: 900px; height: 500px;">
+    </div>
+
+</body>
+</html>
