@@ -1,7 +1,7 @@
 <?php
     $dbhost="localhost";
     $dblogin="www-data";
-    $dbpwd="my_pwd";
+    $dbpwd="www-data";
     $dbname="rtl433db";
 
     //check if we received min/max as input
@@ -15,6 +15,12 @@
 	$sensors = $_POST["sensors"];
     } else {
 	$sensors = "1";
+    }
+    //check if we received date_limit as input
+    if (isset($_POST["date_limit"])) {
+	$sensors = $_POST["date_limit"];
+    } else {
+	$date_limit = "30";
     }
     //check if we received type as input
     if (isset($_POST["type"])) {
@@ -40,11 +46,11 @@
 	    CONCAT(
 	      '" . $limit . "(IF(`channel` = ', `channel`, '," . $type . ",NULL)) AS Sensor', `channel`)
 	  ) INTO @sql
-	FROM SensorData WHERE channel in (" . $sensors . ")";
+	FROM SensorData WHERE (channel in (" . $sensors . ") AND (DATE_SUB(CURDATE(),INTERVAL " . $date_limit . " DAY) <= timestamp))";
     $conn->query($SQLString);
     $SQLString ="SET @sql = CONCAT('SELECT  date(timestamp)as Date, ', @sql, ' 
                   FROM    SensorData
-                  WHERE channel in (" . $sensors . ") GROUP   BY Date')	";
+                  WHERE (channel in (" . $sensors . ") AND (DATE_SUB(CURDATE(),INTERVAL " . $date_limit . " DAY) <= timestamp)) GROUP BY Date')";
     $conn->query($SQLString);
     $SQLString = "PREPARE stmt FROM @sql";
     $conn->query($SQLString);
