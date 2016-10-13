@@ -13,7 +13,7 @@
     //echo "connected successfully";
     
     //define sql statement
-    $SQLString = "select * from (select * from SensorData order by timestamp desc) as myNewTable group by myNewTable.channel order by myNewTable.channel";
+    $SQLString = "select * from (select * from SensorData order by timestamp desc limit 5000) as myNewTable group by myNewTable.channel order by myNewTable.channel";
 		
 
     $result = $conn->query($SQLString);
